@@ -604,7 +604,10 @@ JAKI_ZNAK PROC  ; ZAMIANA ILOSCI WEJSC NA ZNAK
     jz JAKI_ZNAK_KONIEC
     mov dl,'E'
     cmp al,100d
-    ja JAKI_ZNAK_KONIEC   
+    ja JAKI_ZNAK_KONIEC
+    mov dl,'^'
+    cmp al,13d
+    ja JAKI_ZNAK_KONIEC
     push si  
     mov si,ax
     mov dl,byte ptr ds:[ilosc_wejsc+si]
