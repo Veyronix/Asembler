@@ -1,8 +1,15 @@
-data1 segment  
+data1 segment 
+    W1_zdanie db 'Polozenie blednego znaku',10,13,'Numer lini $'
+    W1_zdanie2 db 'Numer znaku w lini $' 
+    wersja db ?
+    W1_linia dw 0
+    W1_znak_w_lini dw ?  
+    W1_OK db 'Wszystkie znaki sa alfanumeryczne$'
+	offset_przepisywania dw ?
 	input db 200 dup (13)   ;input 
-	dlugosci db 200 dup ('$')
+	dlugosci db 200 dup (0)
 	nowa_linia db 13,10,'$'
-	sciezka db 100 dup(10),10
+	sciezka db 100 dup(0)
     spacje dw 0
 	slowo_spacje db 'Ilosc spacji $'
     wyrazy dw 0
@@ -23,16 +30,13 @@ data1 segment
 	slowo_inne db 'Ilosc innych znakow $'
     czy_to_juz_wyraz db 0
 	czy_wczesniejszy_znak_byl_koncem db 0
-    plik db 'nowy.txt',0
-    text db 'Hej'
-	do_zapisu db 'zapis.txt',0
-    sciezka db 'nowy.txt',0 
-    ok db 'operacja ok$'
+	ok db 'operacja ok$'
     blad db 'wystapil blad $'  
     bufor db  16384 dup('$')  
     ilosc dw ?
     wskaznik dw 20 dup('$')
-	new_line db 13,10
+	new_line1 db 13,10
+	new_line2 db 13,10,'$'
 data1 ends                        
 
 ;-----------------------------------         
@@ -46,17 +50,81 @@ code1 segment
 start:  
     mov ax,seg spacje
     mov ds,ax
+	call PARSER_GOOD
+	mov ah,ds:[dlugosci]
+	cmp ds:[dlugosci],0 ;sprawdzanie dlugosci poszczegolnych danych wejsciowych
+	jz bladd           
+	mov ah,ds:[dlugosci+1]
+	cmp ds:[dlugosci+1],0
+	jz bladd    
+	mov ah,ds:[dlugosci+2]
+	cmp ds:[dlugosci+2],0
+	jnz bladd
+	mov si,0
+	call PRZEPISYWANIE
+	mov word ptr ds:[offset_przepisywania],si ;offset 
+	xor di,di
+	cmp ds:[sciezka+di],'-'
+	jnz WERSJA_2
+	inc di
+	cmp ds:[sciezka+di],'v'
+	jnz bladd
+	inc di
+	mov byte ptr ds:[wersja],1
+	mov si,word ptr ds:[offset_przepisywania] 
+	call PRZEPISYWANIE; mamy dane si z wczesniejszego PRZEPISYWANIA
+	mov word ptr ds:[offset_przepisywania],si 
+	mov dx,offset sciezka
+	call OTWIERANIE_PLIKU
+W1_GLOWNY_PROGRAM: 
+    call ODCZYT_Z_PLIKU 
+    call ILOSC_DANYCH_ZNAKOW 
+    ; z ilosci danych znakow wywali nas i pozniej sprawdzimy gdzie byl blad
+    cmp ds:[W1_linia],0
+    jnz WYPISZ_WERSJA_1_BLAD
+	jmp W1_GLOWNY_PROGRAM 
+WYPISZ_WERSJA_1_BLAD:
+    mov dx,offset W1_zdanie
+    mov ah,9
+    int 21h                
+    mov dx,offset W1_linia
+    call WYPISYWANIE_LICZBY
+    mov dx,offset new_line2
+    mov ah,9
+    int 21h
+    mov dx,offset W1_zdanie2
+    mov ah,9
+    int 21h
+    mov dx,offset W1_znak_w_lini
+    call WYPISYWANIE_LICZBY
+    call ZAMKNIECIE_PLIKU
+    jmp ZAKONCZ_PROGRAM
+WERSJA_2: ; wersja 2 programu   
+    mov byte ptr ds:[wersja],2
+	mov word ptr ds:[offset_przepisywania],0
+	mov si,0
+	call PRZEPISYWANIE
+	mov word ptr ds:[offset_przepisywania],si
+	mov dx,offset sciezka
     call OTWIERANIE_PLIKU 
-    ;call tworzenie_pliku 
     ; w ax jest uchwyt pliku
-GLOWNY_PROGRAM:
-    call ODCZYT_Z_PLIKU
-    ;call ZAPISYWANIE_DO_PLIKU 
+GLOWNY_PROGRAM: ;pobieranie danych z pliku i zapisywanie danych
+    call ODCZYT_Z_PLIKU 
     call ILOSC_DANYCH_ZNAKOW
-    ;call POSZCZEGOLNE_ZNAKI
 	jmp GLOWNY_PROGRAM
-ZAPISYWANIE:
+ZAPISYWANIE:   
+    cmp ds:[wersja],2
+    jz ZAPISYWANIE_W2
+    mov dx,offset W1_OK ;jesli w wersji 1 wszystkie znaki byli alfanumeryczne 
+    mov ah,9
+    int 21h
+    call ZAMKNIECIE_PLIKU
+    jmp ZAKONCZ_PROGRAM
+ZAPISYWANIE_W2: ; wpisywanie do outputu wszystkich danych np ILOSC_DANYCH_ZNAKOW itd
 	call ZAMKNIECIE_PLIKU
+	mov si,word ptr ds:[offset_przepisywania]
+	call PRZEPISYWANIE
+	mov dx,offset sciezka
 	call tworzenie_pliku
 	;--------------------------
     mov dx,offset slowo_duze_litery
@@ -64,7 +132,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset duze_litery
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;-----------TEST-------- 
@@ -73,7 +141,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset male_litery
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -82,7 +150,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset cyfry
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -91,7 +159,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset linie
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -100,7 +168,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset spacje
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -109,7 +177,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset zdania
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -118,7 +186,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset znak_inter
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -127,7 +195,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset inne
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 	;---------------------------------------
@@ -136,7 +204,7 @@ ZAPISYWANIE:
 	call ZAPISYWANIE_DO_PLIKU
 	mov dx,offset wyrazy
 	call WYPISYWANIE_LICZBY
-	mov dx,offset new_line
+	mov dx,offset new_line1
 	mov cx,2d
 	call ZAPISYWANIE_DO_PLIKU
 
@@ -145,11 +213,7 @@ KONIEC_PLIKU:
     call ZAMKNIECIE_PLIKU
     mov ax,ds:[ilosc]
     jmp ZAKONCZ_PROGRAM
-    
-    mov ah,9 
-    mov dx,offset blad
-    int 21h
-    jmp ZAKONCZ_PROGRAM
+
 
 
 ;----------------------------------
@@ -184,6 +248,11 @@ POBIERANIE_ZNAKU:
     jbe TO_SPACJA
     cmp ah, 44d ; , 
 	jz TO_ZNAK_INTER
+	xor bx,bx 
+	mov bx,word ptr ds:[linie]
+	mov byte ptr ds:[w1_linia],bl
+	cmp ds:[wersja],1
+	jz W1_KONIEC_ILOSC_DANYCH_ZNAKOW
     jmp TO_INNY_ZNAK
 	
 	
@@ -220,7 +289,10 @@ TO_KONIEC_ZDANIA:
 	mov byte ptr ds:[czy_wczesniejszy_znak_byl_koncem],1
     jmp DALEJ
 TO_NOWA_LINIA: 
-    inc ds:[linie]
+    inc ds:[linie]           
+    ;------
+    mov ds:[w1_znak_w_lini],0 ; do wersji 1, przechowywanie znaku w lini w ktorym jestesmy
+    ;-----
     mov byte ptr ds:[czy_to_juz_wyraz],0   
     jmp DALEJ
 TO_SPACJA:
@@ -239,18 +311,21 @@ WYRAZ:
     mov byte ptr ds:[czy_to_juz_wyraz],al 
     inc ds:[wyrazy]
  
-DALEJ: 
+DALEJ:    
+    ;-----
+    inc ds:[w1_znak_w_lini]
+    ;-----
 	inc si
 	dec cx
 	cmp cx,0
 	jnz POBIERANIE_ZNAKU
-	;loop POBIERANIE_ZNAKU
-       
+W1_KONIEC_ILOSC_DANYCH_ZNAKOW:
+    inc ds:[w1_linia]      
 ret
 ILOSC_DANYCH_ZNAKOW ENDP 
 ;------------------------------------------  
 WYPISYWANIE_LICZBY PROC ;w dx offset liczby do wypisania    
-    push bx
+    push bx		; wypisuje liczbe albo wpisuje ja do pliku
     push cx    
     mov bx,dx ;offset
     mov ax,ds:[bx]; liczba 
@@ -267,13 +342,20 @@ KOLEJNE_CYFRY:
     jmp KOLEJNE_CYFRY
 KROK2:
     pop dx 
-    add dx,48d
+    add dx,48d 
+    cmp ds:[wersja],1
+    jnz KROK2_W2
     mov ah,2
-    int 21h
+    int 21h  
+KROK2_W2:
 	mov word ptr ds:[bx],dx
 	mov dx,bx
-	mov cx,1
+	mov cx,1   
+	cmp ds:[wersja],1
+	jz KROK2_W1
 	call ZAPISYWANIE_DO_PLIKU
+	jmp KROK2_W1
+KROK2_W1:    	
     cmp si,1
     jz KROK3 
     dec si
@@ -284,31 +366,18 @@ KROK3:
 ret
 WYPISYWANIE_LICZBY ENDP
 ;----------------------------------------
-POSZCZEGOLNE_ZNAKI PROC
-    xor si,si
-    mov dl, ds:[bufor+si] 
-znaki:
-	cmp si,ds:[ilosc] 
-    jz KONIEC_POSZCZEGOLNE_ZNAKI
-    mov ah,2
-    int 21h  
-    inc si
-    mov dl,ds:[bufor+si]  
-    jmp znaki   
-KONIEC_POSZCZEGOLNE_ZNAKI:
-ret        
-POSZCZEGOLNE_ZNAKI ENDP
-;-----------------------------------
+
 ;---------------------------------
 TWORZENIE_PLIKU PROC
-    mov ax,seg do_zapisu
+    mov ax,seg sciezka
     mov ds,ax
-    mov dx,offset do_zapisu
+    ;mov dx,offset do_zapisu
     mov cx,0  
     ;mov ah,3Ch
     mov ah,5Bh ; tworzenie pliku w danym katalogu
     int 21h    ;sprawdza czy istnieje juz taki plik
-                ; w ax jest uchwyt  
+                ; w ax jest uchwyt 
+	jc bladd
     mov word ptr ds:[wskaznik],ax
 ret
 TWORZENIE_PLIKU ENDP 
@@ -325,11 +394,6 @@ ZAMKNIECIE_PLIKU ENDP
 ;--------------------------------------------
 ZAPISYWANIE_DO_PLIKU PROC              
     mov bx,ds:[wskaznik]  
-    ;mov ax,seg spacje
-    ;mov ds,ax
-    ;mov dx,offset spacje
-    ;mov cx,3d ;ile bajtow ma zapisac
-    ;mov cx,ds:[ilosc]
     mov ah,40h 
     int 21h
 	jc bladd
@@ -340,7 +404,6 @@ ZAPISYWANIE_DO_PLIKU ENDP
 OTWIERANIE_PLIKU proc 
     mov ax, seg sciezka
     mov ds,ax
-    mov dx,offset sciezka
     mov ah,3Dh   ;funkcja do otwierania pliku
     mov al,0 ;prawo do odczytu
     int 21h  
@@ -354,7 +417,6 @@ ODCZYT_Z_PLIKU proc  ;otwartego pliku
     mov ah,3Fh
     mov bx,word ptr ds:[wskaznik]
     mov cx,16384d ;2^14 elementow
-    ;mov cx,100d
 	mov dx,offset bufor
     int 21h 
     jc bladd 
@@ -362,30 +424,102 @@ ODCZYT_Z_PLIKU proc  ;otwartego pliku
 ret
 ODCZYT_Z_PLIKU ENDP
 ;--------------------------------------
-;---------------------------------------
-SPRAWDZANIE_CZY_OTWORZYLO_PLIK proc 
-    mov ax, seg sciezka
-    mov ds,ax
-    mov dx,offset sciezka
-    mov ah,3Dh
-    mov al,2 ;prawo do zapisu i odczytu
-    int 21h 
-  jc error
-    mov ah,9
-    lea dx,ok
-    int 21h
-    jmp przeskocz
-  error:
-    mov ah,9
-    lea dx,blad
-    int 21h
-  przeskocz:
-  
-  jmp zakoncz_program              
-ret
-SPRAWDZANIE_CZY_OTWORZYLO_PLIK ENDP  
+
 ;--------------------------------------------
+;------POPRAWNY PARSER------
+PARSER_GOOD PROC 
+    push ax
+    push bx
+    push cx
+    push dx
+    mov dx,offset input
+    mov ax,seg input
+    mov ds,ax
+    xor di,di 
+    mov si,82h 
+    xor bp,bp ; do liczenia ktory to argument
+    xor cx,cx ; do liczenia dlugosci argumentu
+    mov al,es:[si]
+    cmp al,0
+    jz FINISH_PARSER
+SPACE:
+    mov al,es:[si]
+    inc si 
+    cmp al,20h  ;czy to dalej spacja
+    jz SPACE
+	cmp al,08h ;CZY TO TABULATOR
+	jz SPACE 
+	cmp al,0Dh
+	jz FINISH_PARSER
+    dec si      ;cofniecie sie do niespacjowego znaku
+PARSER: ; POBIERANIE NOWEGO ZNAKU Z ARGUMENTOW
+    mov al,es:[si]
+    inc si
+    
+    cmp al,0Dh  ;CZY TO 13 CZYLI KONIEC DANYCH
+    jz FINISH_PARSER
+    
+    cmp al,20h ;CZY TO SPACJA
+    jz NEW_LINE
+	
+	cmp al,08h ;CZY TO TABULATOR
+	jz NEW_LINE
+	mov ds:[input+di],al
+	inc cl
+	inc di
+	jmp PARSER
+; wydrykowanie napisu i przejscie do nowej lini
+NEW_LINE:
+    mov al, '$'
+    mov ds:[input + di],al 
+    inc di
+    mov dx,offset dlugosci 
+    mov ds:[dlugosci+bp],cl
+    xor cx,cx  
+    inc bp
+    mov dx,offset input
+    
+; Pomijanie spacji I TABULATORA 
+SPACE2: ; TUTAJ SPRAWDZA SIE CZY POMIEDZY ARG SA SPACJE
+    mov al,es:[si]
+    inc si 
+    cmp al,20h  ;czy to dalej spacja
+    jz SPACE2      
+	cmp al,08h ;CZY TO TABULATOR
+	jz SPACE2
+    dec si
+    jmp PARSER
+    
+FINISH_PARSER: 
+   mov ds:[dlugosci+bp],cl            
+   mov dx,offset dlugosci
+   inc bp
+   mov al,'$' 
+   mov ds:[input+di],al
+   pop dx
+   pop cx
+   pop bx
+   pop ax 
+ret
+PARSER_GOOD ENDP
 ;-----------------------------------------
+;------------------------------------ 
+PRZEPISYWANIE PROC ; w si jest trzymany offset
+	xor bp,bp
+PRZEPISYWANIE_PETLA:	; przepisywanie z inputu do sciezka, zeby pobrac nazwe pliku
+	mov al,byte ptr ds:[input+si]
+	cmp al,'$'
+	jz KONIEC_PRZEPISYWANIE
+	mov byte ptr ds:[sciezka+bp], al
+	inc si
+	inc bp
+	jmp PRZEPISYWANIE_PETLA
+	
+KONIEC_PRZEPISYWANIE:  
+    inc si
+ret
+PRZEPISYWANIE ENDP
+;-----------------------------------------------------
                     
 bladd:
     mov dx,offset blad 
