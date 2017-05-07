@@ -48,6 +48,10 @@ stos1	ends
 
 code1 segment
 start:  
+    mov	ax,seg top1
+	mov	ss,ax
+	mov	sp,offset top1
+	
     mov ax,seg spacje
     mov ds,ax
 	call PARSER_GOOD
