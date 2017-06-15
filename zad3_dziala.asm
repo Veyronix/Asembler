@@ -79,12 +79,7 @@ KOLEJNE_ZNAKI:
 	cmp si,ds:[ilosc]
 	jz KONIEC_KOLEJNE_ZNAKI 
 	mov al,byte ptr ds:[bufor+si]
-	;---------
-	;cmp ds:[bufor+si],10d ;koniec pliku, moze
-	;jz KONIEC_KOLEJNE_ZNAKI 
-	;cmp ds:[bufor+si],32d;spacja 
-	;jz KOLEJNE_ZNAKI
-	;---------
+
 	cmp ds:[bufor+si],114d
 	jz OBROT
 	cmp ds:[bufor+si],109d
@@ -98,19 +93,11 @@ OBROT:
 	inc si
 	cmp ds:[bufor+si],32d;spacja
 	jz OBROT
-	;cmp ds:[bufor+si],48d
-	;ja OBROT
-	;cmp ds:[bufor+si],57d
-	;jb OBROT
-	;--------------
+
 	cmp ds:[bufor+si],45d; -
 	jz OBROT_MINUS
 	call ZAMIANA_NA_LICZBE    
-	;mov al,byte ptr ds:[bufor_na_liczbe]
-	;add ds:[kat],al 
-	;-------------
-	;dolozenie kata na koprocesor
-	;---------------------     
+
 	fild word ptr ds:[bufor_na_liczbe]
 	
     fld ds:[sto80]
@@ -181,14 +168,7 @@ DEL_X_UJ:
 	mov byte ptr ds:[stan_Px_Kx_v2],1
 PO_DEL_X:
 	
-	;---------
-	;mov ax, 3
-	;int 10h
-	;mov dx,offset stan_Px_Kx
-	;call WYPISYWANIE_LICZBY
-	;mov ax,4C00h
-	;int 21h
-	;----------
+
 	fabs ; |Px-Kx|
 	fldz 
 	fadd st(0),st(2) ; st(0)=Py
@@ -228,14 +208,7 @@ X_WIEKSZE_Y: ;|Px-Kx|>|Py-Ky|
 	fstp ds:[delta]
 	
 	fldz
-	;-------
-	;fadd st(0),st(1)
-	;fist ds:[testy]
-	;mov dx,offset testy
-	;call WYPISYWANIE_LICZBY
-	;mov ax,4C00h
-	;int 21h
-	;-------
+
 	fadd st(0),st(1) ;st(0)=Py
 	fstp ds:[y] ; zapisz do ds:[y] Py i usun ze stosu
 	fldz 
@@ -259,8 +232,7 @@ PETLA_X_WIEKSZE_Y_i_XDOD_YDOD:
 	mov ax,word ptr ds:[tmpx]
 	cmp ax,ds:[x2]
 	jnz PETLA_X_WIEKSZE_Y_i_XDOD_YDOD
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA
 
 X_WIEKSZE_Y_i_XDOD_YUJ:
@@ -274,8 +246,7 @@ PETLA_X_WIEKSZE_Y_i_XDOD_YUJ:
 	mov ax,word ptr ds:[tmpx]
 	cmp ax,ds:[x2]
 	jnz PETLA_X_WIEKSZE_Y_i_XDOD_YUJ
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA
 
 X_WIEKSZE_Y_i_XUJ:
@@ -295,8 +266,7 @@ PETLA_X_WIEKSZE_Y_i_XUJ_YDOD:
 	mov ax,word ptr ds:[tmpx]
 	cmp ax,ds:[x2]
 	jnz PETLA_X_WIEKSZE_Y_i_XUJ_YDOD
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA
 	
 X_WIEKSZE_Y_i_XUJ_YUJ:
@@ -310,8 +280,7 @@ PETLA_X_WIEKSZE_Y_i_XUJ_YUJ:
 	mov ax,word ptr ds:[tmpx]
 	cmp ax,ds:[x2]
 	jnz PETLA_X_WIEKSZE_Y_i_XUJ_YUJ
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA
 	
 	
@@ -330,14 +299,7 @@ X_MNIEJSZE_Y:	;|Px-Kx|<|Py-Ky|
 	fldz 
 	fadd st(0),st(3); st(0)=Ky
 	fistp ds:[y2] ;czesc calkowita Ky
-	;---------
-	;mov ax, 3
-	;int 10h
-	;mov dx,offset stan_Py_Ky
-	;call WYPISYWANIE_LICZBY
-	;mov ax,4C00h
-	;int 21h
-	;----------
+
 	cmp ds:[stan_Px_Kx_v2],1 ;CZY UJEMNE
 	jz X_MNIEJSZE_Y_i_XUJ
 	cmp ds:[stan_Py_Ky],1 ; CZY UJEMNE
@@ -354,8 +316,7 @@ PETLA_X_MNIEJSZE_Y_i_XDOD_YDOD:
 	mov ax,word ptr ds:[tmpy]
 	cmp ax,ds:[y2]
 	jnz PETLA_X_MNIEJSZE_Y_i_XDOD_YDOD
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA
 
 
@@ -370,26 +331,16 @@ PETLA_X_MNIEJSZE_Y_i_XDOD_YUJ:
 	mov ax,word ptr ds:[tmpy]
 	cmp ax,ds:[y2]
 	jnz PETLA_X_MNIEJSZE_Y_i_XDOD_YUJ
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA ; NAPISAC JAKI KONIEC
 
 X_MNIEJSZE_Y_i_XUJ:
 	cmp ds:[stan_Py_Ky],1
 	jz X_MNIEJSZE_Y_i_XUJ_YUJ
-	
-	;mov ax,4C00h
-	;int 21h
+
 X_MNIEJSZE_Y_i_XUJ_YDOD:
 PETLA_X_MNIEJSZE_Y_i_XUJ_YDOD:
-	;---------
-	;mov ax, 3
-	;int 10h
-	;mov dx,offset stan_Px_Kx_v2
-	;call WYPISYWANIE_LICZBY
-	;mov ax,4C00h
-	;int 21h
-	;----------
+
 	fld ds:[x]
 	fist ds:[tmpx]
 	fadd ds:[delta]
@@ -399,8 +350,7 @@ PETLA_X_MNIEJSZE_Y_i_XUJ_YDOD:
 	mov ax,word ptr ds:[tmpy]
 	cmp ax,ds:[y2]
 	jnz PETLA_X_MNIEJSZE_Y_i_XUJ_YDOD
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA ; NAPISAC JAKI KONIEC
 
 X_MNIEJSZE_Y_i_XUJ_YUJ:
@@ -416,14 +366,12 @@ PETLA_X_MNIEJSZE_Y_i_XUJ_YUJ: ; oryginał
 	mov ax,word ptr ds:[tmpy]
 	cmp ax,ds:[y2]
 	jnz PETLA_X_MNIEJSZE_Y_i_XUJ_YUJ
-	;mov ax,4C00h
-	;int 21h
+
 	jmp KONIEC_KRESKA ; NAPISAC JAKI KONIEC
 	    
 KONIEC_KRESKA:
 ;AKTUALIZACJA DANYCH NA STOSIE CZYLI Px itd  
-	;fldz 
-	;fadd st(0),st(3)
+
 	
 	fistp ds:[smietnik]
 	fistp ds:[smietnik]
@@ -653,87 +601,7 @@ ret
 PRZEPISYWANIE ENDP
 ;-----------------------------------------------------
 ;----------------------------------------------------------
-WYPISYWANIE_LICZBY PROC ;w dx offset liczby do wypisania    
 
-    push bx		; wypisuje liczbe albo wpisuje ja do pliku
-
-    push cx    
-
-    mov bx,dx ;offset
-
-    mov ax,ds:[bx]; liczba 
-
-    xor si,si
-
-    inc si
-
-KOLEJNE_CYFRY:
-
-    xor dx,dx
-
-    mov cx,10d
-
-    div cx
-
-    push dx
-
-    cmp ax,0
-
-    jz KROK2
-
-    inc si         
-
-    jmp KOLEJNE_CYFRY
-
-KROK2:
-
-    pop dx 
-
-    add dx,48d 
-
-    ;cmp ds:[wersja],1
-
-    ;jnz KROK2_W2
-
-    mov ah,2
-
-    int 21h  
-
-KROK2_W2:
-
-	mov word ptr ds:[bx],dx
-
-	mov dx,bx
-
-	mov cx,1   
-
-	;cmp ds:[wersja],1
-
-	;jz KROK2_W1
-
-	;call ZAPISYWANIE_DO_PLIKU
-
-	jmp KROK2_W1
-
-KROK2_W1:    	
-
-    cmp si,1
-
-    jz KROK3 
-
-    dec si
-
-    jmp KROK2 
-
-KROK3:  
-
-    pop cx
-
-    pop bx
-
-ret
-
-WYPISYWANIE_LICZBY ENDP
 
 ;----------------------------------------
                     
@@ -744,7 +612,14 @@ bladd:
     
     
 ZAKONCZ_PROGRAM:
-    mov ax,4c01h
+	in al, 60h
+	cmp al,1
+    jnz ZAKONCZ_PROGRAM 
+	
+	mov ax, 3 ;wyjscie z trybu graficznego
+	int 10h
+	
+	mov ax,4c01h
     int 21h
 
 
