@@ -49,8 +49,11 @@ start:
 
     mov ax,seg ok
     mov ds,ax  
+	mov	ax,seg top1
+	mov	ss,ax
+	mov	sp,offset top1
 	mov ax,00h
-	mov al,13h
+	mov al,13h ;tryb graficzny
 	int 10h
 
     finit  
@@ -63,7 +66,7 @@ start:
 	call PARSER_GOOD
 	mov ah,ds:[dlugosci]
 	mov si,0 ;offset do PRZEPISYWANIE
-	call PRZEPISYWANIE
+	call PRZEPISYWANIE ;przepisywanie nazwy pliku
 	mov word ptr ds:[offset_przepisywania],si 
 	mov dx,offset sciezka
 	call OTWIERANIE_PLIKU
@@ -94,11 +97,10 @@ OBROT:
 	cmp ds:[bufor+si],32d;spacja
 	jz OBROT
 
-	cmp ds:[bufor+si],45d; -
-	jz OBROT_MINUS
-	call ZAMIANA_NA_LICZBE    
 
-	fild word ptr ds:[bufor_na_liczbe]
+	call ZAMIANA_NA_LICZBE    ;zamiana katu z ASCII na liczbe 
+
+	fild word ptr ds:[bufor_na_liczbe] ;zaladowanie kata na koprocesor
 	
     fld ds:[sto80]
     fdivp st(1),st(0) ;podziel alfa/180 i zdejmij st(0)
@@ -108,7 +110,6 @@ OBROT:
     faddp st(5),st(0);dodaje do aktualnego katu alfa*PI/180 i usuwam st(0)
 	jmp KOLEJNE_ZNAKI
 	
-OBROT_MINUS:
 	
 NAPRZOD:
     inc si
@@ -133,7 +134,7 @@ KONIEC_KOLEJNE_ZNAKI:
 
 
 ;-----------------------------------
-KRESKA PROC  ; w al jest wartosc ile isc naprzod
+KRESKA PROC  
     ;fild word ptr ds:[bufor_na_liczbe]   ;ile ide na przod
 	
 	fldz ; st(0)=0.0
@@ -150,9 +151,9 @@ KRESKA PROC  ; w al jest wartosc ile isc naprzod
 	fadd st(0),st(2) ; st(0)=Px
  	fsub st(0),st(4) ; st(0)=Px-Kx
 	ftst ; porownanie st(0) z zerem
-	fstsw word ptr ds:[zmienna] 
-	mov ax,ds:[zmienna]
-	sahf
+	fstsw word ptr ds:[zmienna] ; miejsce gdzie zapamietamy rejest stanu koprocesora 
+	mov ax,ds:[zmienna] 
+	sahf ;przenies AH do rejestru znacznikow 
 	ja DEL_X_DOD
 	jmp DEL_X_UJ
 	;-----
@@ -192,10 +193,6 @@ DEL_Y_UJ:
 PO_DEL_Y:
 	
 	fabs ; wartosc bezwgledna z st(0)
-;Sprawdzenie czy jestesmy poza pulpitem
-
-	
-	
 	
 ;Sprawdzenie ktora roznica na modul jest wieksza	
 	fcom st(1) ; porownanie Px-Kx z Py-Ky
@@ -437,7 +434,7 @@ ZAMALUJ_PUNKT PROC ; wspolrzedne punktu brane z ds:[tmpx] i ds:[tmpy]
 	mov es,ax
 	mov ax,word ptr ds:[tmpy]
 	mov di,ax
-	shl di,1
+	shl di,1 ;DI=256*Y
 	shl di,1
 	shl di,1
 	shl di,1
@@ -446,14 +443,14 @@ ZAMALUJ_PUNKT PROC ; wspolrzedne punktu brane z ds:[tmpx] i ds:[tmpy]
 	shl di,1
 	shl di,1
 	
+	shl ax,1 ;AX = 64*Y
 	shl ax,1
 	shl ax,1
 	shl ax,1
 	shl ax,1
 	shl ax,1
-	shl ax,1
-	add di,ax
-	add di,word ptr ds:[tmpx]
+	add di,ax ; DI=256Y+64Y=320Y
+	add di,word ptr ds:[tmpx] ;DI = 320Y+X
 	mov al,byte ptr ds:[kolor]
 	mov byte ptr es:[di],al
 petla:
